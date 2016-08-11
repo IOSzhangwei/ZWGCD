@@ -7,9 +7,11 @@
 //
 
 #import "ViewController.h"
-
+#import "GCD.h"
 @interface ViewController ()
 @property (nonatomic, strong) dispatch_source_t timer;
+@property(nonatomic,strong)GCDTimer *gcdTimer;
+
 @end
 
 @implementation ViewController
@@ -19,7 +21,7 @@
 
 /**==============GCD 串行队列与并发队列 =================  */
       //执行串行队列 demo1
-  //  [self serailQueue];
+   // [self serailQueue];
     //执行并发队列  demo2
    // [self initConcurrent];
     
@@ -46,7 +48,7 @@
     
 /**==============GCD定时器 （进阶）================= */
     //GCD 定时器
-   // [self ZWGCDTimer];
+    [self ZWGCDTimer];
     
     //NSThread 定时器
   //  [self normalTimer];
@@ -60,7 +62,7 @@
     //场景，2个异步线程，，线程1，线程2.。。需要线程1执行完成后，在执行线程2
     
     
-    [self Semaphore];
+   // [self Semaphore];
 
 }
 
@@ -98,7 +100,8 @@
     
 }
 -(void)ZWGCDTimer{
-    
+   //原始代码
+    /**
     //初始化定时器
     self.timer=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
     
@@ -113,12 +116,23 @@
     dispatch_resume(self.timer);
     //取消定时器
     //dispatch_cancel(self.timer); self.timer = nil;
+     */
+    
+    //GCD封装
+    self.gcdTimer = [[GCDTimer alloc]initInQueue:[GCDQueue mainQueue]];  //将定时器放入主线程中
+    [self.gcdTimer event:^{
+        
+        NSLog(@"2S执行一次。GCD封装定时器");
+    } timeInterval:NSEC_PER_SEC*2];
+    
+    [self.gcdTimer start];
     
 }
 
 -(void)queueGroup{
     
   /**场:等待线程1与线程2,线程3，执行完成后  。执行线程4*/
+    /**   原始代码
     //创建一个线程组
     dispatch_group_t dispatchGroup = dispatch_group_create();
     
@@ -141,8 +155,28 @@
     dispatch_group_notify(dispatchGroup, Queue, ^{
         NSLog(@"线程4执行完毕");
     });
+    */
     
-   
+    //GCD封装代码
+    
+    GCDGroup *group =[[GCDGroup alloc]init];
+    
+    GCDQueue *zwQueue =[[GCDQueue alloc]initConcurrent];
+    [zwQueue execute:^{
+        NSLog(@"线程1执行完毕");
+    } inGroup:group];
+    [zwQueue execute:^{
+        NSLog(@"线程2执行完毕");
+    } inGroup:group];
+    [zwQueue execute:^{
+        NSLog(@"线程3执行完毕");
+    } inGroup:group];
+    
+    //监听线程组是否执行结束，然后执行线程3
+    [zwQueue notify:^{
+        NSLog(@"线程4执行完毕");
+    } inGroup:group];
+    
 }
 
 
@@ -152,12 +186,20 @@
 -(void)waitGCD{
     NSLog(@"启动");
     
-    //主线程延迟执行。。（子线程延迟此处未做demo）
+    //主线程延迟执行。。（子线程延迟此处未做demo） 原始代码
+    /**
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         
         NSLog(@"延迟三秒");
         
     });
+     */
+    //GCD封装
+    [GCDQueue executeInMainQueue:^{
+        
+        NSLog(@"GCD 封装，延迟2S执行");
+        
+    } afterDelaySecs:2.f];
     
 }
 
@@ -172,6 +214,8 @@
 }
 
 -(void)mainQueue{
+    /**
+     原始代码
     dispatch_queue_t dispatchQueue= dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_async(dispatchQueue, ^{
         
@@ -184,14 +228,26 @@
         });
         
     });
+     */
+    //GCD封装
+    [GCDQueue executeInGlobalQueue:^{
+        
+        //处理业务逻辑
+        
+       [GCDQueue executeInMainQueue:^{
+           //更新UI
+       }];
+        
+    }];
+    
+    
 }
 
 
 -(void)initConcurrent{
-    
+    //原始代码
+    /**
     dispatch_queue_t Queue = dispatch_queue_create(nil, DISPATCH_QUEUE_CONCURRENT);
-    
-    
     dispatch_async(Queue, ^{
         
         NSLog(@"1");
@@ -212,15 +268,33 @@
         
         NSLog(@"5");
     });
+     */
+    //GCD封装
+    GCDQueue *queueConcurrent= [[GCDQueue alloc]initConcurrent];
+    [queueConcurrent execute:^{
+        NSLog(@"执行队列中的线程1");
+    }];
+    
+    [queueConcurrent execute:^{
+        NSLog(@"执行队列中的线程2");
+    }];
+    
+    [queueConcurrent execute:^{
+        NSLog(@"执行队列中的线程3");
+    }];
+    
+    [queueConcurrent execute:^{
+        NSLog(@"执行队列中的线程4");
+    }];
     
     
 }
 
-//串行队列
+//串行队列  顺序执行
 -(void)serailQueue{
     
-    dispatch_queue_t Queue = dispatch_queue_create(nil, DISPATCH_QUEUE_SERIAL);
-    
+    //原始代码
+ /**   dispatch_queue_t Queue = dispatch_queue_create(nil, DISPATCH_QUEUE_SERIAL);
     
     dispatch_async(Queue, ^{
         
@@ -242,7 +316,21 @@
         
         NSLog(@"5");
     });
-    
+  */
+    //GCD封装
+    GCDQueue *queue= [[GCDQueue alloc]initSerial];
+    [queue execute:^{
+        NSLog(@"执行队列中的线程1");
+    }];
+    [queue execute:^{
+        NSLog(@"执行队列中的线程2");
+    }];
+    [queue execute:^{
+        NSLog(@"执行队列中的线程3");
+    }];
+    [queue execute:^{
+        NSLog(@"执行队列中的线程4");
+    }];
 }
 
 @end

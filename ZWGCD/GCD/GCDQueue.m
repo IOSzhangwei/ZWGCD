@@ -82,7 +82,10 @@ static GCDQueue *backgroundPriorityGlobalQueue;
     self = [super init];
     
     if (self) {
-        
+        /*!
+         * @const DISPATCH_QUEUE_SERIAL
+         * @discussion A dispatch queue that invokes blocks serially in FIFO order.
+         */
         self.dispatchQueue = dispatch_queue_create(nil, DISPATCH_QUEUE_SERIAL);
     }
     
