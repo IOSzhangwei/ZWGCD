@@ -48,7 +48,7 @@
     
 /**==============GCD定时器 （进阶）================= */
     //GCD 定时器
-    [self ZWGCDTimer];
+   // [self ZWGCDTimer];
     
     //NSThread 定时器
   //  [self normalTimer];
@@ -62,11 +62,14 @@
     //场景，2个异步线程，，线程1，线程2.。。需要线程1执行完成后，在执行线程2
     
     
-   // [self Semaphore];
+    [self Semaphore];
 
 }
 
 -(void)Semaphore{
+    
+    //原始代码
+    /**
     dispatch_semaphore_t dispatchSemaphore =dispatch_semaphore_create(0);
     
     dispatch_queue_t Queue = dispatch_queue_create(nil, DISPATCH_QUEUE_CONCURRENT);
@@ -82,6 +85,27 @@
         dispatch_semaphore_wait(dispatchSemaphore, DISPATCH_TIME_FOREVER);
         NSLog(@"线程22");
     });
+    */
+    
+    //GCD封装
+    
+    GCDSemaphore *semaphore = [[GCDSemaphore alloc]init];
+    
+    
+    
+    [GCDQueue executeInGlobalQueue:^{
+        NSLog(@"异步线程1");
+        [semaphore signal];
+    }];
+    [GCDQueue executeInGlobalQueue:^{
+        [semaphore wait];
+        NSLog(@"异步线程2");
+       // [semaphore signal];
+    }];
+//    [GCDQueue executeInGlobalQueue:^{
+//        [semaphore wait];
+//        NSLog(@"异步线程3");
+//    }];
     
     
     
